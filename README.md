@@ -87,6 +87,9 @@ curl http://localhost/api/v1/payments/550e8400-e29b-41d4-a716-446655440000
 
 The application includes a modern web interface built with HTMX:
 
+![Payment System Homepage](docs/images/payment-go.png)
+*Homepage with system overview and status*
+
 ### Features**modern, interactive web interface** built with **HTMX** - providing a rich user experience without heavy JavaScript frameworks.
 
 ### ✨ Key Features
@@ -110,6 +113,9 @@ The application includes a modern web interface built with HTMX:
 
 ### 🎯 Payment Creation Workflow
 
+![Create Payment Form](docs/images/payment-go-create.png)
+*Payment creation form with real-time validation*
+
 1. Navigate to `/web/create`
 2. Fill in the payment form:
    - User ID
@@ -120,6 +126,9 @@ The application includes a modern web interface built with HTMX:
 3. Submit → Get instant payment ID
 4. Copy payment ID for tracking
 5. Check status at `/web/get`
+
+![Payment Details View](docs/images/payment-go-detail.png)
+*Payment details with status tracking*
 
 ### 🎨 UI Highlights
 
