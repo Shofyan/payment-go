@@ -87,6 +87,7 @@ func main() {
 
 	// Initialize HTTP handlers
 	paymentHandler := handler.NewPaymentHandler(processPaymentUC, getPaymentUC, logger)
+	webHandler := handler.NewWebHandler(processPaymentUC, getPaymentUC, logger)
 
 	// Initialize middleware
 	rateLimitMW := middleware.NewRateLimitMiddleware(rateLimiter, logger)
@@ -103,6 +104,7 @@ func main() {
 	// Create router
 	r := router.NewRouter(router.Config{
 		PaymentHandler:         paymentHandler,
+		WebHandler:             webHandler,
 		RateLimitMiddleware:    rateLimitMW,
 		BackpressureMiddleware: backpressureMW,
 		TimeoutMiddleware:      timeoutMW,

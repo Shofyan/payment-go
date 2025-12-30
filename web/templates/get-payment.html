@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Get Payment - Payment API</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>💳 Payment API</h1>
+            <p class="subtitle">Get Payment Details</p>
+        </header>
+
+        <nav>
+            <a href="/" class="nav-link">Home</a>
+            <a href="/web/create" class="nav-link">Create Payment</a>
+            <a href="/web/get" class="nav-link active">Get Payment</a>
+            <a href="/metrics" class="nav-link">Metrics</a>
+            <a href="/health" class="nav-link">Health</a>
+        </nav>
+
+        <main>
+            <div class="form-section">
+                <h2>Search Payment</h2>
+                <p>Enter a payment ID to retrieve its details</p>
+
+                <form 
+                    hx-post="/web/payments/get" 
+                    hx-target="#result" 
+                    hx-swap="innerHTML"
+                    hx-indicator="#spinner">
+                    
+                    <div class="form-group">
+                        <label for="payment_id">Payment ID *</label>
+                        <input type="text" id="payment_id" name="payment_id" required 
+                               placeholder="e.g., 123e4567-e89b-12d3-a456-426614174000"
+                               pattern="[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}">
+                        <small>Enter a valid UUID format payment ID</small>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">
+                            <span>Get Payment Details</span>
+                            <span id="spinner" class="spinner htmx-indicator">⏳</span>
+                        </button>
+                        <button type="reset" class="btn btn-secondary">Clear</button>
+                    </div>
+                </form>
+
+                <div id="result" class="result-container"></div>
+            </div>
+
+            <div class="info-section">
+                <h3>🔍 Payment Lookup Information</h3>
+                <ul>
+                    <li>Payment IDs are UUIDs generated during payment creation</li>
+                    <li>You can find the payment ID in the response after creating a payment</li>
+                    <li>Payment status can be: pending, processing, completed, or failed</li>
+                    <li>Transaction IDs are assigned by the payment gateway after processing</li>
+                    <li>All timestamps are in RFC3339 format</li>
+                </ul>
+
+                <div class="example-box">
+                    <h4>Example Payment ID Format:</h4>
+                    <code>123e4567-e89b-12d3-a456-426614174000</code>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>&copy; 2025 Payment API. Built with Go, HTMX, and ❤️</p>
+        </footer>
+    </div>
+</body>
+</html>

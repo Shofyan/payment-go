@@ -1,6 +1,7 @@
 package router
 
 import (
+	"net/http"
 	"payment-api/internal/interface/http/handler"
 	"payment-api/internal/interface/http/middleware"
 
@@ -12,6 +13,7 @@ import (
 // Config holds router configuration
 type Config struct {
 	PaymentHandler         *handler.PaymentHandler
+	WebHandler             *handler.WebHandler
 	RateLimitMiddleware    *middleware.RateLimitMiddleware
 	BackpressureMiddleware *middleware.BackpressureMiddleware
 	TimeoutMiddleware      *middleware.TimeoutMiddleware
@@ -49,6 +51,28 @@ func NewRouter(cfg Config) *chi.Mux {
 			r.Get("/{id}", cfg.PaymentHandler.GetPayment)
 		})
 	})
+
+	// Web interface routes
+	r.Route("/web", func(r chi.Router) {
+		// Serve static files
+		r.Handle("/static/*", http.StripPrefix("/web/static/", http.FileServer(http.Dir("web/static"))))
+
+		// Web pages
+		r.Get("/", cfg.WebHandler.IndexPage)
+		r.Get("/create", cfg.WebHandler.CreatePaymentPage)
+		r.Get("/get", cfg.WebHandler.GetPaymentPage)
+
+		// HTMX endpoints
+		r.Post("/payments/create", cfg.WebHandler.CreatePaymentForm)
+		r.Post("/payments/get", cfg.WebHandler.GetPaymentForm)
+		r.Get("/payments/{id}", cfg.WebHandler.GetPaymentByID)
+	})
+
+	// Root redirects to web interface
+	r.Get("/", cfg.WebHandler.IndexPage)
+
+	// Static files at root level
+	r.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.Dir("web/static"))))
 
 	return r
 }

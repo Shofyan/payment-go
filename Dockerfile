@@ -31,6 +31,9 @@ WORKDIR /root/
 # Copy binary from builder
 COPY --from=builder /app/payment-api .
 
+# Copy web templates and static files
+COPY --from=builder /app/web ./web
+
 # Expose port
 EXPOSE 8080
 

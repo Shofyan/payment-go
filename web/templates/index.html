@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment API - Web Interface</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>💳 Payment API</h1>
+            <p class="subtitle">Web Interface powered by HTMX</p>
+        </header>
+
+        <nav>
+            <a href="/" class="nav-link active">Home</a>
+            <a href="/web/create" class="nav-link">Create Payment</a>
+            <a href="/web/get" class="nav-link">Get Payment</a>
+            <a href="/metrics" class="nav-link">Metrics</a>
+            <a href="/health" class="nav-link">Health</a>
+        </nav>
+
+        <main>
+            <div class="welcome-section">
+                <h2>Welcome to Payment API</h2>
+                <p>This is a production-ready payment processing system built with Go, featuring:</p>
+                
+                <div class="features">
+                    <div class="feature-card">
+                        <h3>🚀 High Performance</h3>
+                        <p>Worker pool, connection pooling, and circuit breaker patterns</p>
+                    </div>
+                    <div class="feature-card">
+                        <h3>🛡️ Resilient</h3>
+                        <p>Rate limiting, backpressure, and graceful degradation</p>
+                    </div>
+                    <div class="feature-card">
+                        <h3>📊 Observable</h3>
+                        <p>Prometheus metrics, structured logging, and health checks</p>
+                    </div>
+                    <div class="feature-card">
+                        <h3>🏗️ Clean Architecture</h3>
+                        <p>Domain-driven design with hexagonal architecture</p>
+                    </div>
+                </div>
+
+                <div class="quick-actions">
+                    <h3>Quick Actions</h3>
+                    <div class="action-buttons">
+                        <a href="/web/create" class="btn btn-primary">Create New Payment</a>
+                        <a href="/web/get" class="btn btn-secondary">Search Payment</a>
+                    </div>
+                </div>
+
+                <div class="api-info">
+                    <h3>API Endpoints</h3>
+                    <div class="endpoint">
+                        <span class="method post">POST</span>
+                        <code>/api/v1/payments</code>
+                        <span class="description">Create a new payment</span>
+                    </div>
+                    <div class="endpoint">
+                        <span class="method get">GET</span>
+                        <code>/api/v1/payments/{id}</code>
+                        <span class="description">Get payment details</span>
+                    </div>
+                    <div class="endpoint">
+                        <span class="method get">GET</span>
+                        <code>/health</code>
+                        <span class="description">Health check</span>
+                    </div>
+                    <div class="endpoint">
+                        <span class="method get">GET</span>
+                        <code>/ready</code>
+                        <span class="description">Readiness check</span>
+                    </div>
+                    <div class="endpoint">
+                        <span class="method get">GET</span>
+                        <code>/metrics</code>
+                        <span class="description">Prometheus metrics</span>
+                    </div>
+                </div>
+
+                <div class="system-status" hx-get="/health" hx-trigger="load, every 30s" hx-swap="innerHTML">
+                    <p>Loading system status...</p>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>&copy; 2025 Payment API. Built with Go, HTMX, and ❤️</p>
+        </footer>
+    </div>
+</body>
+</html>

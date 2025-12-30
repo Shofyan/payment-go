@@ -11,6 +11,7 @@ A production-ready payment processing API built with **Go**, implementing **Clea
 - ✅ **Rate Limiting**: Token bucket, leaky bucket, sliding window
 - ✅ **Connection Pooling**: Efficient database connection management
 - ✅ **Worker Pool**: Bounded goroutine pool for concurrent processing
+- ✅ **Web Interface**: Modern UI built with HTMX for payment management
 - ✅ **Clean Architecture**: Separation of concerns, testable code
 - ✅ **DDD**: Rich domain model, aggregates, value objects
 - ✅ **Docker**: Containerized with docker-compose
@@ -43,7 +44,14 @@ docker-compose up --build -d
 docker-compose logs -f api-1
 ```
 
-### Test the API
+### Access the Application
+
+**🌐 Web Interface** (recommended for easy testing):
+- **Homepage**: http://localhost/
+- **Create Payment**: http://localhost/web/create
+- **Get Payment**: http://localhost/web/get
+
+**📡 API Endpoints**:
 
 ```bash
 # Health check
@@ -57,13 +65,13 @@ curl -X POST http://localhost/api/v1/payments \
     "merchant_id": "merchant456",
     "amount": 10000,
     "currency": "USD",
-    "method": "CREDIT_CARD"
+    "method": "credit_card"
   }'
 
 # Response:
 # {
 #   "payment_id": "550e8400-e29b-41d4-a716-446655440000",
-#   "status": "PENDING",
+#   "status": "pending",
 #   "created_at": "2025-12-30T10:00:00Z"
 # }
 
@@ -71,12 +79,60 @@ curl -X POST http://localhost/api/v1/payments \
 curl http://localhost/api/v1/payments/550e8400-e29b-41d4-a716-446655440000
 ```
 
-### Access Monitoring
+**Monitoring**:
+- Prometheus: http://localhost:9090
+- Grafana: http://localhost:3000 (admin/admin)
 
-- **Prometheus**: http://localhost:9090
-- **Grafana**: http://localhost:3000 (admin/admin)
+## 🌐 Web Interface
 
-## 📂 Project Structure
+The application includes a modern web interface built with HTMX:
+
+### Features**modern, interactive web interface** built with **HTMX** - providing a rich user experience without heavy JavaScript frameworks.
+
+### ✨ Key Features
+
+- 🎨 **Modern UI Design**: Clean, professional interface with smooth animations
+- ⚡ **HTMX Integration**: Dynamic interactions without full page reloads
+- 📱 **Fully Responsive**: Works seamlessly on desktop, tablet, and mobile
+- 🔄 **Real-time Updates**: Auto-refreshing status indicators
+- 🎯 **Zero Dependencies**: Only ~14KB HTMX library required
+- 🚀 **Fast Performance**: Partial page updates for instant feedback
+- ♿ **Accessible**: Semantic HTML with proper form validation
+
+### 📄 Available Pages
+
+| Page | URL | Description |
+|------|-----|-------------|
+| **Home** | `/` | Overview, features, API documentation, system status |
+| **Create Payment** | `/web/create` | Interactive form to create new payments |
+| **Get Payment** | `/web/get` | Search and view payment details by ID |
+| **Payment Details** | `/web/payments/{id}` | Full payment information with refresh option |
+
+### 🎯 Payment Creation Workflow
+
+1. Navigate to `/web/create`
+2. Fill in the payment form:
+   - User ID
+   - Merchant ID
+   - Amount (in cents)
+   - Currency (USD, EUR, GBP, JPY, CAD, AUD)
+   - Payment Method (credit_card, debit_card, bank_transfer, paypal, cryptocurrency)
+3. Submit → Get instant payment ID
+4. Copy payment ID for tracking
+5. Check status at `/web/get`
+
+### 🎨 UI Highlights
+
+- **Status Badges**: Color-coded indicators (pending, processing, completed, failed)
+- **Form Validation**: Real-time client and server-side validation
+- **Loading Indicators**: Visual feedback during HTMX requests
+- **Copy to Clipboard**: One-click payment ID copying
+- **Auto-refresh**: System health updates every 30 seconds
+- **Error Handling**: User-friendly error messages
+
+### 📚 Documentation
+
+For detailed web interface documentation, see [web/README.md](web/README.md)
 
 ```
 payment-go/
@@ -109,11 +165,22 @@ payment-go/
 │   └── interface/                     # Interface Layer
 │       └── http/
 │           ├── handler/
-│           │   └── payment_handler.go # HTTP handlers
+│           │   ├── payment_handler.go # HTTP API handlers
+│           │   └── web_handler.go     # Web UI handlers
 │           ├── middleware/
 │           │   └── middleware.go      # Rate limit, logging, etc.
 │           └── router/
 │               └── router.go          # Route definitions
+├── web/                               # Web Interface
+│   ├── templates/                     # HTML templates
+│   │   ├── index.html                 # Homepage
+│   │   ├── create-payment.html        # Create payment page
+│   │   ├── get-payment.html           # Get payment page
+│   │   └── *.html                     # Other templates
+│   ├── static/                        # Static assets
+│   │   └── css/
+│   │       └── style.css              # Styles
+│   └── README.md                      # Web interface docs
 ├── scripts/
 │   └── init.sql                       # Database schema
 ├── docker-compose.yml                 # Multi-container setup
@@ -230,11 +297,17 @@ NGINX Load Balancer (Least-conn, Rate limit)
 - ✅ **Backpressure**: Reject new requests if DB is struggling
 - ✅ **Circuit Breaker**: Stop calling DB if it's down
 
-### 3. Payment Gateway Failure
+### 3. Payment Gateway Failurecredit_card"}' \
+  http://localhost/api/v1/payments
 
-- ✅ **Circuit Breaker**: After 5 failures, stop sending requests
-- ✅ **Fallback**: Queue payment for retry, notify user
-- ✅ **Half-Open Testing**: Gradually test recovery
+# Expected results:
+# Success rate: > 95%
+# Avg latency: < 50ms
+# p99 latency: < 200ms
+```
+
+## ⚙️ Configuration
+ng**: Gradually test recovery
 - ✅ **Monitoring**: Alert on circuit breaker state changes
 
 ### 4. Memory Pressure
@@ -414,14 +487,106 @@ spec:
   metrics:
   - type: Resource
     resource:
-      name: cpu
-      target:
-        type: Utilization
-        averageUtilization: 70
+   🛠️ Local Development
+
+### Prerequisites
+- Go 1.21+
+- Docker & Docker Compose
+- PostgreSQL 15+ (or use Docker)
+
+### Setup
+
+```🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+### Development Guidelines
+
+1. Follow Go best practices and idioms
+2. Maintain clean architecture boundaries
+3. Write unit tests for new features
+4. Update documentation as needed
+5. Run linters before committing
+
+## 📖 Further Reading
+
+### Project Documentation
+- [ARCHITECTURE.md](ARCHITECTURE.md) - Detailed system design and patterns
+- [web/README.md](web/README.md) - Web interface documentation
+- [docs/CONFIGURATION.md](docs/CONFIGURATION.md) - Configuration guide
+
+### External Resources
+- [Clean Architecture](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html) - Robert C. Martin
+- [Domain-Driven Design](https://martinfowler.com/tags/domain%20driven%20design.html) - Martin Fowler
+- [Go Concurrency Patterns](https://go.dev/blog/pipelines) - Go Blog
+- [HTMX Documentation](https://htmx.org/) - Official HTMX docs
+
+## 📄 License
+
+MIT License - See LICENSE file
+
+---
+
+**Built with ❤️ using Go, Clean Architecture, and HTMX** 🚀
+
+*A production-ready payment system demonstrating best practices for high-throughput backend development*
+# Access at http://localhost:8080
 ```
 
-## 🧠 Key Learnings
+### Project Commands
 
+```bash
+# Build
+go build -o bin/api cmd/api/main.go
+
+# Run tests
+go test ./...
+
+# Run with race detection
+go run -race cmd/api/main.go
+
+# View code coverage
+go test -coverprofile=coverage.out ./...
+go tool cover -html=coverage.out
+
+# Format code
+go fmt ./...
+
+# Lint (requires golangci-lint)
+golangci-lint run
+```
+
+## 🔧 Technology Stack
+
+### Backend
+- **Language**: Go 1.21+
+- **Router**: Chi v5
+- **Database**: PostgreSQL 15
+- **Logging**: Uber Zap
+- **Metrics**: Prometheus
+- **Containerization**: Docker
+
+### Web Interface
+- **Templates**: Go html/template
+- **Dynamic UI**: HTMX 1.9
+- **Styling**: Custom CSS (no frameworks)
+- **Icons**: Unicode emojis
+
+### Infrastructure
+- **Load Balancer**: NGINX
+- **Monitoring**: Prometheus + Grafana
+- **Orchestration**: Docker Compose / Kubernetes
+
+## 🧠 Key Learnings & Best Practices
+
+1. **Backpressure is Critical**: Always provide a mechanism to reject load gracefully
+2. **Context Propagation**: Use `context.Context` for timeouts and cancellation
+3. **Bounded Everything**: Worker pools, queues, connections must have limits
+4. **Circuit Breakers**: Essential for preventing cascading failures
+5. **Observability**: Metrics and health checks are not optional
+6. **Graceful Shutdown**: Drain in-flight requests on SIGTERM
+7. **Clean Architecture**: Keep domain logic independent of frameworks
+8. **HTMX for Web**: Rich interactions with minimal JavaScript
 1. **Backpressure is Critical**: Always provide a mechanism to reject load gracefully
 2. **Context Propagation**: Use `context.Context` for timeouts and cancellation
 3. **Bounded Everything**: Worker pools, queues, connections must have limits

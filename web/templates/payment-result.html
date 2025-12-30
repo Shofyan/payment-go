@@ -1,0 +1,36 @@
+<div class="success-message">
+    <div class="icon">✅</div>
+    <h3>Payment Created Successfully!</h3>
+    
+    <div class="result-details">
+        <div class="detail-row">
+            <span class="label">Payment ID:</span>
+            <span class="value"><code>{{.PaymentID}}</code></span>
+        </div>
+        <div class="detail-row">
+            <span class="label">Status:</span>
+            <span class="status-badge status-{{.Status}}">{{.Status}}</span>
+        </div>
+        <div class="detail-row">
+            <span class="label">Created At:</span>
+            <span class="value">{{.CreatedAt}}</span>
+        </div>
+    </div>
+
+    <div class="result-actions">
+        <a href="/web/payments/{{.PaymentID}}" class="btn btn-primary">View Full Details</a>
+        <button onclick="navigator.clipboard.writeText('{{.PaymentID}}')" class="btn btn-secondary">
+            Copy Payment ID
+        </button>
+    </div>
+
+    <div class="info-box">
+        <p>💡 <strong>Next steps:</strong></p>
+        <ul>
+            <li>Save the Payment ID for future reference</li>
+            <li>Payment is being processed asynchronously</li>
+            <li>Use "Get Payment" page to check current status</li>
+            <li>Status will update from "pending" to "completed" or "failed"</li>
+        </ul>
+    </div>
+</div>

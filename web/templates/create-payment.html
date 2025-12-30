@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Payment - Payment API</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>💳 Payment API</h1>
+            <p class="subtitle">Create New Payment</p>
+        </header>
+
+        <nav>
+            <a href="/" class="nav-link">Home</a>
+            <a href="/web/create" class="nav-link active">Create Payment</a>
+            <a href="/web/get" class="nav-link">Get Payment</a>
+            <a href="/metrics" class="nav-link">Metrics</a>
+            <a href="/health" class="nav-link">Health</a>
+        </nav>
+
+        <main>
+            <div class="form-section">
+                <h2>Create New Payment</h2>
+                <p>Fill in the details below to process a new payment</p>
+
+                <form 
+                    hx-post="/web/payments/create" 
+                    hx-target="#result" 
+                    hx-swap="innerHTML"
+                    hx-indicator="#spinner">
+                    
+                    <div class="form-group">
+                        <label for="user_id">User ID *</label>
+                        <input type="text" id="user_id" name="user_id" required 
+                               placeholder="e.g., user-12345">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="merchant_id">Merchant ID *</label>
+                        <input type="text" id="merchant_id" name="merchant_id" required 
+                               placeholder="e.g., merchant-67890">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="amount">Amount (cents) *</label>
+                        <input type="number" id="amount" name="amount" required min="1" 
+                               placeholder="e.g., 10000 (for $100.00)">
+                        <small>Enter amount in smallest currency unit (cents for USD)</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="currency">Currency *</label>
+                        <select id="currency" name="currency" required>
+                            <option value="">Select currency</option>
+                            <option value="USD">USD - US Dollar</option>
+                            <option value="EUR">EUR - Euro</option>
+                            <option value="GBP">GBP - British Pound</option>
+                            <option value="JPY">JPY - Japanese Yen</option>
+                            <option value="CAD">CAD - Canadian Dollar</option>
+                            <option value="AUD">AUD - Australian Dollar</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="method">Payment Method *</label>
+                        <select id="method" name="method" required>
+                            <option value="">Select payment method</option>
+                            <option value="credit_card">Credit Card</option>
+                            <option value="debit_card">Debit Card</option>
+                            <option value="bank_transfer">Bank Transfer</option>
+                            <option value="paypal">PayPal</option>
+                            <option value="cryptocurrency">Cryptocurrency</option>
+                        </select>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">
+                            <span>Process Payment</span>
+                            <span id="spinner" class="spinner htmx-indicator">⏳</span>
+                        </button>
+                        <button type="reset" class="btn btn-secondary">Clear Form</button>
+                    </div>
+                </form>
+
+                <div id="result" class="result-container"></div>
+            </div>
+
+            <div class="info-section">
+                <h3>📝 Payment Processing Notes</h3>
+                <ul>
+                    <li>All fields are required for successful payment processing</li>
+                    <li>Amount should be in the smallest currency unit (cents)</li>
+                    <li>Payments are processed asynchronously using a worker pool</li>
+                    <li>You'll receive a payment ID immediately upon submission</li>
+                    <li>Use the payment ID to check status via the "Get Payment" page</li>
+                    <li>The system includes rate limiting and circuit breaker protection</li>
+                </ul>
+            </div>
+        </main>
+
+        <footer>
+            <p>&copy; 2025 Payment API. Built with Go, HTMX, and ❤️</p>
+        </footer>
+    </div>
+</body>
+</html>

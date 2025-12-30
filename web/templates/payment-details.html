@@ -1,0 +1,76 @@
+<div class="payment-details-card">
+    <div class="card-header">
+        <h3>💳 Payment Details</h3>
+        <span class="status-badge status-{{.Status}}">{{.Status}}</span>
+    </div>
+
+    <div class="card-body">
+        <div class="details-grid">
+            <div class="detail-item">
+                <span class="detail-label">Payment ID</span>
+                <span class="detail-value"><code>{{.PaymentID}}</code></span>
+            </div>
+
+            <div class="detail-item">
+                <span class="detail-label">User ID</span>
+                <span class="detail-value">{{.UserID}}</span>
+            </div>
+
+            <div class="detail-item">
+                <span class="detail-label">Merchant ID</span>
+                <span class="detail-value">{{.MerchantID}}</span>
+            </div>
+
+            <div class="detail-item">
+                <span class="detail-label">Amount</span>
+                <span class="detail-value amount">{{.Amount}} {{.Currency}}</span>
+            </div>
+
+            <div class="detail-item">
+                <span class="detail-label">Currency</span>
+                <span class="detail-value">{{.Currency}}</span>
+            </div>
+
+            <div class="detail-item">
+                <span class="detail-label">Payment Method</span>
+                <span class="detail-value">{{.Method}}</span>
+            </div>
+
+            {{if .TransactionID}}
+            <div class="detail-item">
+                <span class="detail-label">Transaction ID</span>
+                <span class="detail-value"><code>{{.TransactionID}}</code></span>
+            </div>
+            {{end}}
+
+            <div class="detail-item">
+                <span class="detail-label">Created At</span>
+                <span class="detail-value">{{.CreatedAt}}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="card-footer">
+        <button 
+            hx-post="/web/payments/get" 
+            hx-vals='{"payment_id": "{{.PaymentID}}"}' 
+            hx-target="#result"
+            hx-swap="innerHTML"
+            class="btn btn-secondary">
+            🔄 Refresh Status
+        </button>
+        <a href="/web/create" class="btn btn-primary">Create Another Payment</a>
+    </div>
+
+    <div class="status-info">
+        {{if eq .Status "pending"}}
+        <p>⏳ This payment is pending and awaiting processing.</p>
+        {{else if eq .Status "processing"}}
+        <p>⚙️ This payment is currently being processed.</p>
+        {{else if eq .Status "completed"}}
+        <p>✅ This payment has been successfully completed.</p>
+        {{else if eq .Status "failed"}}
+        <p>❌ This payment has failed. Please try again or contact support.</p>
+        {{end}}
+    </div>
+</div>
