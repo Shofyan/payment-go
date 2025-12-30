@@ -1,0 +1,773 @@
+{
+	"info": {
+		"_postman_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+		"name": "Payment API - High Throughput System",
+		"description": "Complete Postman collection for testing the high-throughput payment processing API with Clean Architecture and DDD.\n\n## Features Tested:\n- Payment creation and processing\n- Rate limiting (100 req/s)\n- Backpressure handling\n- Circuit breaker behavior\n- Health checks\n- Load testing scenarios",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "12345678"
+	},
+	"item": [
+		{
+			"name": "Health & Status",
+			"item": [
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/health",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"health"
+							]
+						},
+						"description": "Check if the API is alive and healthy. This endpoint is used by load balancers and orchestration tools.\n\n**Expected Response:**\n- Status: 200 OK\n- Response time: < 50ms"
+					},
+					"response": []
+				},
+				{
+					"name": "Readiness Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/ready",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"ready"
+							]
+						},
+						"description": "Check if the API is ready to accept traffic. Verifies database and dependencies.\n\n**Expected Response:**\n- Status: 200 OK when ready\n- Status: 503 Service Unavailable when not ready"
+					},
+					"response": []
+				},
+				{
+					"name": "Prometheus Metrics",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/metrics",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"metrics"
+							]
+						},
+						"description": "Prometheus-compatible metrics endpoint for monitoring.\n\n**Metrics Exposed:**\n- worker_pool_queue_size\n- circuit_breaker_state\n- rate_limiter_requests_denied_total\n- http_requests_total"
+					},
+					"response": []
+				}
+			],
+			"description": "Health check and monitoring endpoints"
+		},
+		{
+			"name": "Payments",
+			"item": [
+				{
+					"name": "Create Payment - Credit Card",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Test response status",
+									"pm.test(\"Status code is 202 Accepted\", function () {",
+									"    pm.response.to.have.status(202);",
+									"});",
+									"",
+									"// Test response structure",
+									"pm.test(\"Response has payment_id\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('payment_id');",
+									"    pm.expect(jsonData).to.have.property('status');",
+									"    pm.expect(jsonData).to.have.property('created_at');",
+									"});",
+									"",
+									"// Save payment_id for subsequent requests",
+									"var jsonData = pm.response.json();",
+									"pm.environment.set(\"payment_id\", jsonData.payment_id);",
+									"",
+									"// Test response time",
+									"pm.test(\"Response time is less than 500ms\", function () {",
+									"    pm.expect(pm.response.responseTime).to.be.below(500);",
+									"});",
+									"",
+									"// Test payment status",
+									"pm.test(\"Payment status is PENDING\", function () {",
+									"    pm.expect(jsonData.status).to.equal(\"PENDING\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Generate unique user ID for this request",
+									"pm.environment.set(\"user_id\", \"user_\" + Date.now());"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"user_id\": \"{{user_id}}\",\n    \"merchant_id\": \"merchant_123\",\n    \"amount\": 10000,\n    \"currency\": \"USD\",\n    \"method\": \"CREDIT_CARD\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/payments",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"payments"
+							]
+						},
+						"description": "Create a new payment with credit card.\n\n**Request Body:**\n- user_id: User identifier\n- merchant_id: Merchant identifier\n- amount: Amount in smallest currency unit (cents)\n- currency: ISO 4217 currency code (USD, EUR, etc.)\n- method: Payment method (CREDIT_CARD, DEBIT_CARD, WALLET, BANK_TRANSFER)\n\n**Response:**\n- 202 Accepted: Payment accepted for processing\n- 400 Bad Request: Invalid request data\n- 429 Too Many Requests: Rate limit exceeded\n- 503 Service Unavailable: System overloaded (backpressure)\n\n**Processing:**\nPayment is processed asynchronously by worker pool. Poll GET /payments/{id} for status."
+					},
+					"response": []
+				},
+				{
+					"name": "Create Payment - Debit Card",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"pm.environment.set(\"user_id\", \"user_\" + Date.now());"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"user_id\": \"{{user_id}}\",\n    \"merchant_id\": \"merchant_456\",\n    \"amount\": 5000,\n    \"currency\": \"USD\",\n    \"method\": \"DEBIT_CARD\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/payments",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"payments"
+							]
+						},
+						"description": "Create a payment using debit card method."
+					},
+					"response": []
+				},
+				{
+					"name": "Create Payment - Wallet",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"pm.environment.set(\"user_id\", \"user_\" + Date.now());"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"user_id\": \"{{user_id}}\",\n    \"merchant_id\": \"merchant_789\",\n    \"amount\": 25000,\n    \"currency\": \"USD\",\n    \"method\": \"WALLET\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/payments",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"payments"
+							]
+						},
+						"description": "Create a payment using digital wallet method."
+					},
+					"response": []
+				},
+				{
+					"name": "Create Payment - Bank Transfer",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"pm.environment.set(\"user_id\", \"user_\" + Date.now());"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"user_id\": \"{{user_id}}\",\n    \"merchant_id\": \"merchant_321\",\n    \"amount\": 100000,\n    \"currency\": \"USD\",\n    \"method\": \"BANK_TRANSFER\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/payments",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"payments"
+							]
+						},
+						"description": "Create a high-value payment using bank transfer."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Payment Status",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Test response status",
+									"pm.test(\"Status code is 200 OK\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"// Test response structure",
+									"pm.test(\"Response contains payment details\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('payment_id');",
+									"    pm.expect(jsonData).to.have.property('status');",
+									"    pm.expect(jsonData).to.have.property('created_at');",
+									"});",
+									"",
+									"// Test valid status",
+									"pm.test(\"Payment status is valid\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    var validStatuses = [\"PENDING\", \"PROCESSING\", \"COMPLETED\", \"FAILED\", \"CANCELLED\"];",
+									"    pm.expect(validStatuses).to.include(jsonData.status);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/payments/{{payment_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"payments",
+								"{{payment_id}}"
+							]
+						},
+						"description": "Retrieve payment status and details by payment ID.\n\n**Path Parameters:**\n- id: Payment UUID\n\n**Response Statuses:**\n- PENDING: Payment created, not yet processed\n- PROCESSING: Payment is being processed\n- COMPLETED: Payment successful\n- FAILED: Payment failed\n- CANCELLED: Payment cancelled\n\n**Response:**\n- 200 OK: Payment found\n- 400 Bad Request: Invalid payment ID format\n- 404 Not Found: Payment not found"
+					},
+					"response": []
+				}
+			],
+			"description": "Payment creation and retrieval endpoints"
+		},
+		{
+			"name": "Error Scenarios",
+			"item": [
+				{
+					"name": "Invalid Amount (Negative)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 400 Bad Request\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"pm.test(\"Error message returned\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('error');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"user_id\": \"user_test\",\n    \"merchant_id\": \"merchant_123\",\n    \"amount\": -1000,\n    \"currency\": \"USD\",\n    \"method\": \"CREDIT_CARD\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/payments",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"payments"
+							]
+						},
+						"description": "Test validation: negative amount should be rejected"
+					},
+					"response": []
+				},
+				{
+					"name": "Missing Required Field",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 400 Bad Request\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"user_id\": \"user_test\",\n    \"amount\": 1000,\n    \"currency\": \"USD\",\n    \"method\": \"CREDIT_CARD\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/payments",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"payments"
+							]
+						},
+						"description": "Test validation: missing merchant_id should be rejected"
+					},
+					"response": []
+				},
+				{
+					"name": "Invalid Payment ID Format",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 400 Bad Request\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/payments/invalid-uuid-format",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"payments",
+								"invalid-uuid-format"
+							]
+						},
+						"description": "Test error handling: invalid UUID format"
+					},
+					"response": []
+				},
+				{
+					"name": "Payment Not Found",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 404 Not Found\", function () {",
+									"    pm.response.to.have.status(404);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/payments/00000000-0000-0000-0000-000000000000",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"payments",
+								"00000000-0000-0000-0000-000000000000"
+							]
+						},
+						"description": "Test error handling: payment doesn't exist"
+					},
+					"response": []
+				}
+			],
+			"description": "Test error handling and validation"
+		},
+		{
+			"name": "Load Testing",
+			"item": [
+				{
+					"name": "Rate Limit Test (Rapid Fire)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// This test should eventually hit rate limit",
+									"pm.test(\"Status code is 202 or 429\", function () {",
+									"    pm.expect([202, 429]).to.include(pm.response.code);",
+									"});",
+									"",
+									"// Check for Retry-After header on 429",
+									"if (pm.response.code === 429) {",
+									"    pm.test(\"Retry-After header present\", function () {",
+									"        pm.response.to.have.header(\"Retry-After\");",
+									"    });",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Use same user_id to trigger per-user rate limit",
+									"pm.environment.set(\"user_id\", \"rate_limit_test_user\");"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"user_id\": \"{{user_id}}\",\n    \"merchant_id\": \"merchant_load_test\",\n    \"amount\": 1000,\n    \"currency\": \"USD\",\n    \"method\": \"CREDIT_CARD\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/payments",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"payments"
+							]
+						},
+						"description": "Run this request in Postman Runner with high iterations to test rate limiting.\n\n**Expected Behavior:**\n- First ~100 requests: 202 Accepted\n- After rate limit: 429 Too Many Requests\n- Retry-After header indicates wait time\n\n**Rate Limit Configuration:**\n- 100 requests per second per user\n- Burst capacity: 200 requests\n\n**How to Test:**\n1. Open Runner in Postman\n2. Set iterations: 300\n3. Set delay: 0ms\n4. Run and observe rate limit in action"
+					},
+					"response": []
+				},
+				{
+					"name": "Backpressure Test (System Overload)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// When system is overloaded, expect 503",
+									"pm.test(\"Status code is 202 or 503\", function () {",
+									"    pm.expect([202, 503]).to.include(pm.response.code);",
+									"});",
+									"",
+									"// Check for Retry-After on backpressure",
+									"if (pm.response.code === 503) {",
+									"    pm.test(\"Backpressure applied - Retry-After header present\", function () {",
+									"        pm.response.to.have.header(\"Retry-After\");",
+									"    });",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"pm.environment.set(\"user_id\", \"user_\" + Date.now() + \"_\" + Math.random());"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"user_id\": \"{{user_id}}\",\n    \"merchant_id\": \"merchant_stress\",\n    \"amount\": 5000,\n    \"currency\": \"USD\",\n    \"method\": \"CREDIT_CARD\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/payments",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"payments"
+							]
+						},
+						"description": "Test system backpressure when worker pool queue is full.\n\n**Expected Behavior:**\n- When worker pool queue < 90% full: 202 Accepted\n- When worker pool queue ≥ 90% full: 503 Service Unavailable\n\n**Configuration:**\n- Worker pool size: 50 workers\n- Queue capacity: 1,000 tasks\n- Backpressure threshold: 900 tasks (90%)\n\n**How to Test:**\n1. Run with high concurrency in Runner\n2. Set iterations: 2000+\n3. Delay: 0ms\n4. Monitor for 503 responses (backpressure in action)"
+					},
+					"response": []
+				}
+			],
+			"description": "Load testing and stress testing scenarios.\n\n**Note:** Use Postman Runner or Newman for automated load testing.\n\n**Example Newman command:**\n```bash\nnewman run Payment-API.postman_collection.json \\\n  -e payment-api.postman_environment.json \\\n  -n 1000 \\\n  --delay-request 0\n```"
+		},
+		{
+			"name": "Multiple Currencies",
+			"item": [
+				{
+					"name": "Payment in EUR",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"pm.environment.set(\"user_id\", \"user_\" + Date.now());"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"user_id\": \"{{user_id}}\",\n    \"merchant_id\": \"merchant_eu\",\n    \"amount\": 15000,\n    \"currency\": \"EUR\",\n    \"method\": \"CREDIT_CARD\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/payments",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"payments"
+							]
+						},
+						"description": "Create payment in EUR (Euro)"
+					},
+					"response": []
+				},
+				{
+					"name": "Payment in GBP",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"pm.environment.set(\"user_id\", \"user_\" + Date.now());"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"user_id\": \"{{user_id}}\",\n    \"merchant_id\": \"merchant_uk\",\n    \"amount\": 8000,\n    \"currency\": \"GBP\",\n    \"method\": \"DEBIT_CARD\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/payments",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"payments"
+							]
+						},
+						"description": "Create payment in GBP (British Pound)"
+					},
+					"response": []
+				},
+				{
+					"name": "Payment in JPY",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"pm.environment.set(\"user_id\", \"user_\" + Date.now());"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"user_id\": \"{{user_id}}\",\n    \"merchant_id\": \"merchant_jp\",\n    \"amount\": 1000000,\n    \"currency\": \"JPY\",\n    \"method\": \"WALLET\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/payments",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"payments"
+							]
+						},
+						"description": "Create payment in JPY (Japanese Yen)"
+					},
+					"response": []
+				}
+			],
+			"description": "Test payments with different currencies"
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost",
+			"type": "string"
+		},
+		{
+			"key": "payment_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "user_id",
+			"value": "",
+			"type": "string"
+		}
+	]
+}
