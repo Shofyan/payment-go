@@ -6,7 +6,25 @@ import (
 	"sync"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	"golang.org/x/time/rate"
+)
+
+var (
+	rateLimiterRequestsAllowed = promauto.NewCounter(
+		prometheus.CounterOpts{
+			Name: "ratelimiter_requests_allowed_total",
+			Help: "Total number of requests allowed by rate limiter",
+		},
+	)
+
+	rateLimiterRequestsBlocked = promauto.NewCounter(
+		prometheus.CounterOpts{
+			Name: "ratelimiter_requests_blocked_total",
+			Help: "Total number of requests blocked by rate limiter",
+		},
+	)
 )
 
 // RateLimiter provides rate limiting functionality
@@ -45,7 +63,15 @@ func NewTokenBucketLimiter(r float64, burst int) *TokenBucketLimiter {
 // Allow checks if request is allowed (non-blocking)
 func (tbl *TokenBucketLimiter) Allow(ctx context.Context, key string) (bool, error) {
 	limiter := tbl.getLimiter(key)
-	return limiter.Allow(), nil
+	allowed := limiter.Allow()
+
+	if allowed {
+		rateLimiterRequestsAllowed.Inc()
+	} else {
+		rateLimiterRequestsBlocked.Inc()
+	}
+
+	return allowed, nil
 }
 
 // Wait blocks until request is allowed or context is cancelled

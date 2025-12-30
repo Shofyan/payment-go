@@ -5,6 +5,19 @@ import (
 	"errors"
 	"sync"
 	"time"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+)
+
+var (
+	circuitBreakerStateChanges = promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "circuitbreaker_state_changes_total",
+			Help: "Total number of circuit breaker state changes",
+		},
+		[]string{"from", "to"},
+	)
 )
 
 // State represents the circuit breaker state
@@ -178,6 +191,9 @@ func (cb *CircuitBreaker) setState(newState State) {
 	oldState := cb.state
 	cb.state = newState
 	cb.lastStateChange = time.Now()
+
+	// Record metric
+	circuitBreakerStateChanges.WithLabelValues(oldState.String(), newState.String()).Inc()
 
 	// Reset counters based on new state
 	switch newState {

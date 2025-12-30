@@ -5,7 +5,25 @@ import (
 	"sync"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	"go.uber.org/zap"
+)
+
+var (
+	workerPoolActiveWorkers = promauto.NewGauge(
+		prometheus.GaugeOpts{
+			Name: "workerpool_active_workers",
+			Help: "Number of active workers in the pool",
+		},
+	)
+
+	workerPoolQueueSize = promauto.NewGauge(
+		prometheus.GaugeOpts{
+			Name: "workerpool_queue_size",
+			Help: "Number of tasks in the worker pool queue",
+		},
+	)
 )
 
 // Task represents a unit of work to be processed
@@ -94,8 +112,15 @@ func (wp *WorkerPool) worker(id int) {
 				return
 			}
 
+			// Update metrics
+			workerPoolActiveWorkers.Inc()
+			workerPoolQueueSize.Set(float64(len(wp.taskQueue)))
+
 			// Execute task with timeout from context
 			result := wp.executeTask(task)
+
+			// Update metrics after completion
+			workerPoolActiveWorkers.Dec()
 
 			// Update metrics
 			wp.updateMetrics(result)
@@ -137,6 +162,7 @@ func (wp *WorkerPool) Submit(ctx context.Context, task Task) error {
 	case <-wp.ctx.Done():
 		return context.Canceled
 	case wp.taskQueue <- task:
+		workerPoolQueueSize.Set(float64(len(wp.taskQueue)))
 		return nil
 	default:
 		// Queue is full - apply backpressure

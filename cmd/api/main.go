@@ -89,6 +89,12 @@ func main() {
 	paymentHandler := handler.NewPaymentHandler(processPaymentUC, getPaymentUC, logger)
 	webHandler := handler.NewWebHandler(processPaymentUC, getPaymentUC, logger)
 
+	// Get instance name for metrics (hostname or container name)
+	instanceName, _ := os.Hostname()
+	if instanceName == "" {
+		instanceName = "unknown"
+	}
+
 	// Initialize middleware
 	rateLimitMW := middleware.NewRateLimitMiddleware(rateLimiter, logger)
 
@@ -100,6 +106,7 @@ func main() {
 	timeoutMW := middleware.NewTimeoutMiddleware(30*time.Second, logger)
 	recoveryMW := middleware.NewRecoveryMiddleware(logger)
 	loggingMW := middleware.NewLoggingMiddleware(logger)
+	metricsMW := middleware.NewMetricsMiddleware(instanceName)
 
 	// Create router
 	r := router.NewRouter(router.Config{
@@ -110,6 +117,7 @@ func main() {
 		TimeoutMiddleware:      timeoutMW,
 		RecoveryMiddleware:     recoveryMW,
 		LoggingMiddleware:      loggingMW,
+		MetricsMiddleware:      metricsMW,
 	})
 
 	// Create HTTP server

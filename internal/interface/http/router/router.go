@@ -19,6 +19,7 @@ type Config struct {
 	TimeoutMiddleware      *middleware.TimeoutMiddleware
 	RecoveryMiddleware     *middleware.RecoveryMiddleware
 	LoggingMiddleware      *middleware.LoggingMiddleware
+	MetricsMiddleware      *middleware.MetricsMiddleware
 }
 
 // NewRouter creates a new HTTP router with all routes
@@ -28,6 +29,7 @@ func NewRouter(cfg Config) *chi.Mux {
 	// Global middleware (order matters!)
 	r.Use(cfg.RecoveryMiddleware.Handler)     // Recover from panics
 	r.Use(cfg.LoggingMiddleware.Handler)      // Log requests
+	r.Use(cfg.MetricsMiddleware.Handler)      // Collect metrics
 	r.Use(chimiddleware.RequestID)            // Add request ID
 	r.Use(chimiddleware.RealIP)               // Get real IP
 	r.Use(cfg.TimeoutMiddleware.Handler)      // Request timeout

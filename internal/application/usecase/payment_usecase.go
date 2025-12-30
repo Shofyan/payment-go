@@ -98,6 +98,8 @@ func (uc *ProcessPaymentUseCase) processPaymentAsync(ctx context.Context, pmt *p
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
+	start := time.Now()
+
 	uc.logger.Info("Processing payment",
 		zap.String("payment_id", pmt.ID().String()),
 		zap.String("user_id", pmt.UserID()),
@@ -131,6 +133,11 @@ func (uc *ProcessPaymentUseCase) processPaymentAsync(ctx context.Context, pmt *p
 		if updateErr := uc.repo.Update(ctx, pmt); updateErr != nil {
 			uc.logger.Error("Failed to update payment", zap.Error(updateErr))
 		}
+
+		// Record metrics
+		duration := time.Since(start).Seconds()
+		RecordPaymentMetric("failed", duration)
+
 		return err
 	}
 
@@ -155,6 +162,10 @@ func (uc *ProcessPaymentUseCase) processPaymentAsync(ctx context.Context, pmt *p
 		zap.String("payment_id", pmt.ID().String()),
 		zap.String("transaction_id", transactionID),
 	)
+
+	// Record metrics
+	duration := time.Since(start).Seconds()
+	RecordPaymentMetric("completed", duration)
 
 	return nil
 }

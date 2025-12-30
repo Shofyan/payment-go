@@ -8,7 +8,25 @@ import (
 	"time"
 
 	_ "github.com/lib/pq"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	"go.uber.org/zap"
+)
+
+var (
+	databaseConnectionsActive = promauto.NewGauge(
+		prometheus.GaugeOpts{
+			Name: "database_connections_active",
+			Help: "Number of active database connections",
+		},
+	)
+
+	databaseConnectionsIdle = promauto.NewGauge(
+		prometheus.GaugeOpts{
+			Name: "database_connections_idle",
+			Help: "Number of idle database connections",
+		},
+	)
 )
 
 // ConnectionPool manages database connections with pooling
@@ -185,7 +203,7 @@ func (cp *ConnectionPool) GetStats() sql.DBStats {
 func (cp *ConnectionPool) GetMetrics() PoolMetrics {
 	cp.metrics.mu.RLock()
 	defer cp.metrics.mu.RUnlock()
-	
+
 	// Return a copy without the mutex
 	return PoolMetrics{
 		activeConnections: cp.metrics.activeConnections,
@@ -233,6 +251,10 @@ func (cp *ConnectionPool) collectMetrics() {
 		cp.metrics.maxIdleClosed = stats.MaxIdleClosed
 		cp.metrics.maxLifetimeClosed = stats.MaxLifetimeClosed
 		cp.metrics.mu.Unlock()
+
+		// Update Prometheus metrics
+		databaseConnectionsActive.Set(float64(stats.InUse))
+		databaseConnectionsIdle.Set(float64(stats.Idle))
 
 		// Log if connection pool is stressed
 		if stats.WaitCount > 0 {
